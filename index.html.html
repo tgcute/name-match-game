@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班级姓名繁简配对大挑战</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;
+  background:linear-gradient(135deg,#e8f7ff,#fff7e8 48%,#f3ecff);
+  color:#263238;
+}
+.wrap{max-width:1200px;margin:auto;padding:24px 18px 40px}
+header{
+  text-align:center;background:#ffffffd9;border-radius:26px;padding:22px 18px;
+  box-shadow:0 10px 30px #7b879433;margin-bottom:18px
+}
+h1{margin:0 0 8px;font-size:32px;color:#315b8f}
+.subtitle{font-size:16px;color:#68747d}
+.stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.stat{background:#f5f8fb;border-radius:14px;padding:9px 16px;font-weight:700}
+.stat span{color:#e8794f;font-size:20px;margin-left:5px}
+.controls{text-align:center;margin:14px 0}
+button{
+  border:0;border-radius:14px;padding:11px 18px;font-size:15px;font-weight:700;
+  cursor:pointer;background:#4d83c4;color:white;box-shadow:0 4px 10px #4d83c433
+}
+button:hover{transform:translateY(-1px)}
+#board{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:12px;
+}
+.card{
+  min-height:76px;background:white;border:3px solid transparent;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:25px;font-weight:700;cursor:pointer;box-shadow:0 5px 15px #6b72801f;
+  transition:.2s;user-select:none;padding:8px
+}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 18px #6b728033}
+.card.selected{border-color:#f0a34a;background:#fff4df;transform:scale(1.03)}
+.card.matched{border-color:#62bd8a;background:#e9faef;color:#23804c;cursor:default}
+.card.wrong{animation:shake .35s}
+.card.hidden{visibility:hidden}
+@keyframes shake{25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-5px)}}
+.message{
+  text-align:center;min-height:34px;margin:14px 0;font-size:18px;font-weight:700;color:#53616c
+}
+.legend{text-align:center;color:#77838c;font-size:14px;margin-top:14px}
+.overlay{
+  position:fixed;inset:0;background:#1e293bcc;display:none;align-items:center;justify-content:center;padding:20px;z-index:5
+}
+.modal{
+  background:white;border-radius:28px;padding:34px;text-align:center;max-width:450px;width:100%;
+  box-shadow:0 20px 60px #0005
+}
+.modal h2{color:#3d78a8;font-size:30px;margin-top:0}
+.big{font-size:42px;font-weight:900;color:#e7794d}
+@media(max-width:900px){#board{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){
+  .wrap{padding:12px}
+  h1{font-size:25px}
+  #board{grid-template-columns:repeat(3,1fr);gap:8px}
+  .card{min-height:68px;font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🌟 班级姓名繁简配对大挑战 🌟</h1>
+  <div class="subtitle">找出同一位同学的「简体字姓名」和「繁体字姓名」</div>
+  <div class="stats">
+    <div class="stat">已配对 <span id="matched">0</span>/36</div>
+    <div class="stat">尝试次数 <span id="attempts">0</span></div>
+    <div class="stat">用时 <span id="time">0</span> 秒</div>
+    <div class="stat">得分 <span id="score">0</span></div>
+  </div>
+</header>
+
+<div class="controls">
+  <button onclick="newGame()">🔄 重新开始</button>
+</div>
+<div id="message" class="message">点击两张姓名卡，找出它们的繁简对应关系！</div>
+<div id="board"></div>
+<div class="legend">💡 提示：例如「陈」对应「陳」，「刘」对应「劉」。</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>🎉 全部配对成功！</h2>
+    <p>你完成了36位同学的姓名繁简配对。</p>
+    <div class="big" id="finalScore">0 分</div>
+    <p id="finalInfo"></p>
+    <button onclick="newGame();closeModal()">再挑战一次</button>
+  </div>
+</div>
+
+<script>
+const pairs = [
+["叶欣培","葉欣培"],["陈怡洁","陳怡潔"],["郑彦昊","鄭彥昊"],["李智珉","李智珉"],
+["张栓铭","張栓銘"],["俞宗廷","俞宗廷"],["余沁柔","余沁柔"],["刘芸君","劉芸君"],
+["黄于宸","黃於宸"],["吴家诚","吳家誠"],["江若僖","江若僖"],["邱振城","邱振城"],
+["郭佳禾","郭佳禾"],["赖俊成","賴俊成"],["张嘉恩","張嘉恩"],["李苓绚","李苓絢"],
+["雷芯悦","雷芯悅"],["梁展詮","梁展詮"],["林师源","林師源"],["凌国昊","凌國昊"],
+["罗婉纭","羅婉紜"],["罗梓惠","羅梓惠"],["刘芷瑜","劉芷瑜"],["王芷晴","王芷晴"],
+["彭芯妍","彭芯妍"],["李名峰","李名峰"],["施颖绚","施穎絢"],["周欣慧","周欣慧"],
+["陈亿达","陳億達"],["陈赞深","陳贊深"],["池伈惠","池伈惠"],["古萱萱","古萱萱"],
+["蔡智希","蔡智希"],["黄则睿","黃則睿"],["叶佳瑄","葉佳瑄"],["楊语晨","楊語晨"]
+];
+
+let cards=[], selected=[], matched=0, attempts=0, score=0, seconds=0, timer=null, locked=false, started=false;
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+function newGame(){
+  clearInterval(timer); timer=null; seconds=0; matched=0; attempts=0; score=0; selected=[]; locked=false; started=false;
+  updateStats(); document.getElementById("message").textContent="点击两张姓名卡，找出它们的繁简对应关系！";
+  cards=[];
+  pairs.forEach((p,i)=>{
+    cards.push({text:p[0],pair:i,type:"简体"});
+    cards.push({text:p[1],pair:i,type:"繁体"});
+  });
+  shuffle(cards); render();
+}
+function render(){
+  const board=document.getElementById("board"); board.innerHTML="";
+  cards.forEach((c,i)=>{
+    const el=document.createElement("div"); el.className="card"; el.textContent=c.text; el.dataset.index=i;
+    el.onclick=()=>choose(i,el); board.appendChild(el);
+  });
+}
+function startTimer(){
+  if(started)return; started=true;
+  timer=setInterval(()=>{seconds++;document.getElementById("time").textContent=seconds},1000);
+}
+function choose(i,el){
+  if(locked || cards[i].matched || selected.includes(i)) return;
+  startTimer(); selected.push(i); el.classList.add("selected");
+  if(selected.length===2) checkPair();
+}
+function checkPair(){
+  locked=true; attempts++;
+  const [a,b]=selected, els=[...document.querySelectorAll(".card")];
+  if(cards[a].pair===cards[b].pair && cards[a].type!==cards[b].type){
+    cards[a].matched=cards[b].matched=true; matched++;
+    score += Math.max(10, 50-Math.max(0,attempts-matched)*2);
+    els[a].classList.remove("selected"); els[b].classList.remove("selected");
+    els[a].classList.add("matched"); els[b].classList.add("matched");
+    document.getElementById("message").textContent="✅ 配对成功！继续寻找下一组！";
+    selected=[]; locked=false; updateStats();
+    if(matched===pairs.length) finish();
+  }else{
+    els[a].classList.add("wrong"); els[b].classList.add("wrong");
+    document.getElementById("message").textContent="💭 再想一想，这两个姓名不是同一位同学。";
+    setTimeout(()=>{
+      els[a].classList.remove("selected","wrong"); els[b].classList.remove("selected","wrong");
+      selected=[]; locked=false; updateStats();
+    },700);
+  }
+  updateStats();
+}
+function updateStats(){
+  document.getElementById("matched").textContent=matched;
+  document.getElementById("attempts").textContent=attempts;
+  document.getElementById("score").textContent=score;
+}
+function finish(){
+  clearInterval(timer);
+  const accuracy=Math.round((pairs.length/attempts)*100);
+  const timeBonus=Math.max(0,300-seconds);
+  score+=timeBonus;
+  updateStats();
+  document.getElementById("finalScore").textContent=score+" 分";
+  document.getElementById("finalInfo").textContent=`完成时间：${seconds} 秒　｜　尝试：${attempts} 次　｜　配对准确率：${accuracy}%`;
+  document.getElementById("overlay").style.display="flex";
+}
+function closeModal(){document.getElementById("overlay").style.display="none"}
+newGame();
+</script>
+</body>
+</html>
